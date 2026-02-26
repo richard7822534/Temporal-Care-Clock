@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>到點打卡</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial; padding: 16px; }
+    button { width: 100%; padding: 14px; font-size: 16px; margin-top: 10px; }
+    .muted { color: #666; font-size: 13px; }
+    pre { background: #f6f6f6; padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <h3>到點打卡</h3>
+  <div class="muted">請按下按鈕後允許定位。若拿不到 idToken，請確認 LIFF app 有勾選 openid scope。</div>
+
+  <button id="btn">打卡（抓定位 + 上傳）</button>
+  <pre id="log"></pre>
+
+<script>
+const LIFF_ID = "你的_LIFF_ID";
+const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzjwIUD4Vr6b7fi58K3RMtDK0NqlrlfF1TIPjN09pkH3AWzo3MaGJI9ybeT6Giox36E/exec"; // 以 /exec 結尾
+
+const logEl = document.getElementById("log");
+const btn = document.getElementById("btn");
+const log = (s) => { logEl.textContent += s + "\n"; };
+
+async function init() {
+  await liff.init({ liffId: LIFF_ID });
+
+  // 在外部瀏覽器才需要明確 login；在 LINE 內通常已登入
+  if (!liff.isLoggedIn()) {
+    liff.login();
+    return;
+  }
+
+  const profile = await liff.getProfile();
+  log("登入成功");
+  log("userId: " + profile.userId);
+  log("name: " + (profile.displayName || ""));
+
+  btn.onclick = () => checkin(profile);
+}
+
+function getPosition() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    });
+  });
+}
+
+async function checkin(profile) {
+  btn.disabled = true;
+  try {
+    log("\n開始定位…");
+
+    const pos = await getPosition();
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy;
+
+    log(`定位成功: ${lat}, ${lng} (±${accuracy}m)`);
+
+    // 取得 ID token（需 LIFF app 勾 openid scope） :contentReference[oaicite:2]{index=2}
+    const idToken = liff.getIDToken();
+    if (!idToken) {
+      throw new Error("拿不到 idToken：請到 LIFF app 設定勾選 openid scope，並讓使用者重新開啟 LIFF");
+    }
+
+    const payload = {
+      userId: profile.userId,
+      displayName: profile.displayName || "",
+      lat,
+      lng,
+      accuracy,
+      ts: Date.now(),
+      idToken
+    };
+
+    const resp = await fetch(GAS_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await resp.text();
+    log("伺服器回應: " + text);
+
+  } catch (err) {
+    log("失敗: " + (err && err.message ? err.message : String(err)));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+init().catch(e => log("初始化失敗: " + e.message));
+</script>
+</body>
+</html>
