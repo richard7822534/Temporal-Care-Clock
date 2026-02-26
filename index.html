@@ -82,10 +82,21 @@ async function checkin(profile) {
       idToken
     };
 
+    const params = new URLSearchParams();
+    params.append("userId", profile.userId);
+    params.append("displayName", profile.displayName || "");
+    params.append("lat", lat);
+    params.append("lng", lng);
+    params.append("accuracy", accuracy);
+    params.append("ts", Date.now());
+    params.append("idToken", idToken);
+    
     const resp = await fetch(GAS_WEBAPP_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: params.toString()
     });
 
     const text = await resp.text();
@@ -103,3 +114,4 @@ init().catch(e => log("初始化失敗: " + e.message));
 </body>
 
 </html>
+
