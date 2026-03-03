@@ -16,12 +16,12 @@
   <h3>到點打卡</h3>
   <div class="muted">請按下按鈕後允許定位。若拿不到 idToken，請確認 LIFF app 有勾選 openid scope。</div>
 
-  <button id="btn">打卡（抓定位 + 上傳）</button>
+  <button id="btn">打卡</button>
   <pre id="log"></pre>
 
 <script>
 const LIFF_ID = "2009245563-A6TB2tkO";
-const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwC2sSeTNBZEbLK7lJlkVogbNmAp-0HdmUhHWd1VnMu6lj1-qhkPvtNr2DyndhQ1JHK/exec"; // 以 /exec 結尾
+const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9vVpK45aVAykOqsYkFAZPzpEnvzwSE61d8Ct992mZt32RFTJp5q42za_QK3JYeiA/exec"; // 以 /exec 結尾
 
 const logEl = document.getElementById("log");
 const btn = document.getElementById("btn");
@@ -37,9 +37,9 @@ async function init() {
   }
 
   const profile = await liff.getProfile();
-  log("登入成功");
-  log("userId: " + profile.userId);
-  log("name: " + (profile.displayName || ""));
+  log("連線中，請稍後....");
+  // log("userId: " + profile.userId);
+  // log("name: " + (profile.displayName || ""));
 
   btn.onclick = () => checkin(profile);
 }
@@ -57,14 +57,14 @@ function getPosition() {
 async function checkin(profile) {
   btn.disabled = true;
   try {
-    log("\n開始定位…");
+    // log("\n開始定位…");
 
     const pos = await getPosition();
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
     const accuracy = pos.coords.accuracy;
 
-    log(`定位成功: ${lat}, ${lng} (±${accuracy}m)`);
+    // log(`定位成功: ${lat}, ${lng} (±${accuracy}m)`);
 
     // 取得 ID token（需 LIFF app 勾 openid scope） :contentReference[oaicite:2]{index=2}
     const idToken = liff.getIDToken();
@@ -100,7 +100,7 @@ async function checkin(profile) {
     });
 
     const text = await resp.text();
-    log("伺服器回應: " + text);
+    log("打卡成功 !!");
 
   } catch (err) {
     log("失敗: " + (err && err.message ? err.message : String(err)));
@@ -114,6 +114,7 @@ init().catch(e => log("初始化失敗: " + e.message));
 </body>
 
 </html>
+
 
 
 
